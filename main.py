@@ -1,3 +1,4 @@
+import os
 import pymysql
 # Tengo que instalar esto pip install python-decouple 
 from decouple import config
@@ -13,6 +14,21 @@ USERS_TABLE = """CREATE TABLE users(
 
 """
 
+def system_clear(function):
+    def wrapper(connect, cursor):
+
+        os.system("cls")
+
+        function(connect, cursor)
+
+        input("")
+
+        os.system("cls")
+
+    wrapper.__doc__ = function.__doc__
+    return wrapper
+
+@system_clear
 def  create_user(connect, cursor):
     """A) Crear Usario """
 
@@ -30,6 +46,7 @@ def  create_user(connect, cursor):
 
     print (">>> Usuario Creado")
 
+@system_clear
 def list_users(connect, cursor):
     """B) Listar Usarios """
 
@@ -41,18 +58,49 @@ def list_users(connect, cursor):
 
     print ("Listado de Usuarios")
     
+def user_exists(function):
 
-def update_users(connect, cursor):
+    def wrapper(connect, cursor):
+        id=input("Ingrese el id Usuario a actualizar: ")
+        query = "Select id, username, email from USERS where id = %s"
+        cursor.execute(query, (id,))
+
+        user =cursor.fetchone()
+        if user:
+            function(id, connect, cursor)
+        else:
+            print ("No existe un usuario con ese id, intenta nuevaemtente")    
+
+    wrapper.__doc__ = function.__doc__
+    return wrapper
+
+@system_clear
+@user_exists
+def update_users(id, connect, cursor):
     """C) Actualizar Usario """
+   
+    username=input("Ingresa un nuevo username: ")
+    email=input("Ingresa un nuevo email: ")
+    
+    query="UPDATE  users SET username = %s, email = %s WHERE id =  %s "
+    #creo una tupla de valores
+    values=(username, email, id)
 
-    print ("Usuario Actualizado")
-    pass
-
-def delete_users(connect, cursor):
+    cursor.execute(query, values)
+    connect.commit()
+        
+    print (">>> Usuario Actualizado exitosamente!")
+    
+@system_clear    
+@user_exists
+def delete_users(id, connect, cursor):
     """D) Eliminar Usario """
 
-    print ("Usuario Eliminado")
-    pass
+    query = "Delete from users where id = %s"
+    cursor.execute(query, (id,))
+    connect.commit()
+
+    print (">>> Usuario eliminado exitosamente!")
 
 def default(*args):
     print ("Opcion no valida")
